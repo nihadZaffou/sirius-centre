@@ -51,6 +51,7 @@ Route::middleware(['auth', 'actif', 'role:directeur'])
     Route::get('/dashboard',             [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/attestations',          [AttestationController::class, 'index'])->name('attestations.index');
     Route::post('/attestations/generer', [AttestationController::class, 'generer'])->name('attestations.generer');
+    Route::get('/attestations/preview', [AttestationController::class, 'preview'])->name('attestations.preview');
     Route::delete('/attestations/{id}',  [AttestationController::class, 'destroy'])->name('attestations.destroy');
     Route::get('/traductions',              [TraductionController::class, 'index'])->name('traductions.index');
     Route::post('/traductions',             [TraductionController::class, 'store'])->name('traductions.store');
@@ -59,7 +60,11 @@ Route::middleware(['auth', 'actif', 'role:directeur'])
     Route::get('/inscription/data',      [InscriptionController::class, 'create'])->name('inscription.data');
     Route::get('/inscription/rechercher',[InscriptionController::class, 'rechercher'])->name('inscription.rechercher');
     Route::post('/inscription',          [InscriptionController::class, 'store'])->name('inscription.store');
-
+Route::get('/certificate/{any?}', function () {
+    return response()->file(public_path('certificate/index.html'), [
+        'Access-Control-Allow-Origin' => '*',
+    ]);
+})->where('any', '.*');
     // Routes accessibles SEULEMENT au directeur principal
     Route::middleware('directeur.principal')->group(function () {
         Route::get('/langues',               [LangueController::class, 'index'])->name('langues.index');
@@ -95,6 +100,7 @@ Route::middleware(['auth', 'actif', 'role:directeur'])
         Route::patch('/alertes/{id}/resoudre',[AlerteController::class, 'resoudre'])->name('alertes.resoudre');
         Route::get('/logs',                   [LogController::class, 'index'])->name('logs.index');
         Route::patch('/presences/{id}/justifier', [PresenceController::class, 'justifier'])->name('presences.justifier');
+        ;
     });
 
 });

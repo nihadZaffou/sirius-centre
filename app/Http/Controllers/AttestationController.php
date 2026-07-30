@@ -135,4 +135,87 @@ class AttestationController extends Controller
         Attestation::findOrFail($id)->delete();
         return back()->with('success', 'Attestation supprimée.');
     }
+public function preview(Request $request)
+{
+    $request->validate([
+        'idEtudiant' => 'required|exists:etudiants,idEtudiant',
+        'langue'     => 'required|string',
+        'niveau'     => 'required|string',
+        'annee'      => 'required|string',
+    ]);
+
+    $config   = config("attestations.{$request->langue}.niveaux.{$request->niveau}");
+    if (!$config) {
+        return back()->withErrors(['niveau' => 'Niveau non trouvé.']);
+    }
+
+    $etudiant = Etudiant::with('user')->findOrFail($request->idEtudiant);
+
+    // Enregistrer en base
+    Attestation::updateOrCreate(
+        [
+            'idEtudiant' => $etudiant->idEtudiant,
+            'langue'     => $request->langue,
+            'niveau'     => $request->niveau,
+        ],
+        [
+            'statut'      => 'validee',
+            'dateDemande' => now(),
+        ]
+    );
+
+    \App\Models\Log::enregistrer(
+        'generation_attestation',
+        "Attestation {$config['label']} pour {$etudiant->user->prenom} {$etudiant->user->nom}"
+    );
+
+    // Construire URL vers le projet du dev
+    $params = http_build_query([
+        'from_laravel'     => '1',
+        'fullName'         => strtoupper($etudiant->user->prenom . ' ' . $etudiant->user->nom),
+        'birthDate'        => $etudiant->dateNaissance
+            ? Carbon::parse($etudiant->dateNaissance)->format('d.m.Y')
+            : '',
+        'birthPlace'       => strtoupper($etudiant->ville ?? ''),
+        'academicPeriod'   => $request->annee,
+        'level'            => $config['label'],
+        'courseTitle'      => 'Deutschkurs für Studenten',
+        'registrationText' => 'in unserer Sprachschule angemeldet ist und in der Zeit vom',
+        'completionText'   => 'besucht hat.',
+        'issueDate'        => Carbon::now()->locale('fr')->isoFormat('D MMMM YYYY'),
+        'directorTitle'    => $config['signataire'],
+    ]);
+
+return Inertia::location('/certificate/index.html?' . $params);
+}
+
+// Helpers selon langue
+private function getCourseTitle(string $langue, array $config): string
+{
+    return match($langue) {
+        'allemand' => 'Deutschkurs für Studenten',
+        'anglais'  => 'English Course',
+        default    => 'Cours de langue',
+    };
+}
+
+private function getRegistrationText(string $langue, array $config): string
+{
+    return match($langue) {
+        'allemand' => str_contains($config['texte'], 'Schuljahr')
+            ? 'Im Schuljahr'
+            : 'in unserer Sprachschule angemeldet ist und in der Zeit vom',
+        default    => 'registered and attended from',
+    };
+}
+
+private function getCompletionText(string $langue, array $config): string
+{
+    return match($langue) {
+        'allemand' => str_contains($config['texte'], 'teilgenommen')
+            ? 'teilgenommen hat.'
+            : 'besucht hat.',
+        default    => 'successfully completed.',
+    };
+}
 }

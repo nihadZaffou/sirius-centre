@@ -47,7 +47,7 @@ function ModalGenerer({ langues, onClose }) {
         } catch { setResultats([]) }
     }
 
-const submit = async (e) => {
+const submit = (e) => {
     e.preventDefault()
     const errs = {}
     if (!etudiant) errs.etudiant = 'Choisissez un étudiant'
@@ -56,63 +56,16 @@ const submit = async (e) => {
     if (!annee)    errs.annee    = 'Saisissez l\'année scolaire'
     if (Object.keys(errs).length) { setErrors(errs); return }
 
-    setLoading(true)
+    // Utiliser fetch pour appeler Laravel et récupérer l'URL de redirect
+    const params = new URLSearchParams({
+        idEtudiant: etudiant.id,
+        langue,
+        niveau,
+        annee,
+    })
 
-    try {
-        const xsrfToken = decodeURIComponent(
-            document.cookie
-                .split('; ')
-                .find(row => row.startsWith('XSRF-TOKEN='))
-                ?.split('=')[1] ?? ''
-        )
-
-        const response = await fetch('/directeur/attestations/generer', {
-        
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-XSRF-TOKEN': xsrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: JSON.stringify({
-                idEtudiant: etudiant.id,
-                langue,
-                niveau,
-                annee,
-            }),
-            
-
-        })
-        console.log('Status:', response.status)
-        console.log('Content-Type:', response.headers.get('Content-Type'))
-
-        if (!response.ok) {
-            const text = await response.text()
-            console.error('Erreur serveur:', text)
-            setErrors({ general: 'Erreur lors de la génération.' })
-            setLoading(false)
-            return
-        }
-
-        // Télécharger le PDF
-        const blob = await response.blob()
-        const url  = window.URL.createObjectURL(blob)
-        const a    = document.createElement('a')
-        a.href     = url
-        a.download = `attestation_${etudiant.nom}_${niveau}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-
-        setLoading(false)
-        onClose()
-
-    } catch(err) {
-        console.error('Erreur:', err)
-        setErrors({ general: 'Erreur réseau.' })
-        setLoading(false)
-    }
+    window.location.href = `/directeur/attestations/preview?${params.toString()}`
+    onClose()
 }
     return (
         <Modal title="Générer une attestation" onClose={onClose} maxWidth="max-w-lg">
