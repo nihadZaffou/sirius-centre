@@ -19,6 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         'role'   => \App\Http\Middleware\CheckRole::class,
         'actif'  => \App\Http\Middleware\CheckActif::class,
     ]);
+    $middleware->alias([
+    'role'                => \App\Http\Middleware\CheckRole::class,
+    'actif'               => \App\Http\Middleware\CheckActif::class,
+    'directeur.principal' => \App\Http\Middleware\CheckDirecteurPrincipal::class,
+]);
 })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

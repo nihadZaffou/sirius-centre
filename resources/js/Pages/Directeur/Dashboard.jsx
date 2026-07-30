@@ -383,11 +383,10 @@ function ModalInscription({ onClose }) {
     )
 }
 
-export default function Dashboard({ stats = {}, alertes = [], seances = [] }) {
+export default function Dashboard({ stats = {}, alertes = [], seances = [], isSecondaire = false }) {
     const { props }                    = usePage()
     const flash                        = props.flash ?? {}
     const [modalInscription, setModal] = useState(false)
-
     const dateAujourdhui = new Date().toLocaleDateString('fr-FR', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     })
@@ -405,13 +404,24 @@ export default function Dashboard({ stats = {}, alertes = [], seances = [] }) {
                     <IconPlus /> Nouvelle inscription
                 </Button>
             </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <StatCard icon={<IconEtudiants />} label="Étudiants actifs"  value={stats.etudiants ?? 0} />
-                <StatCard icon={<IconGroupes />}   label="Groupes en cours"  value={stats.groupes   ?? 0} />
-                <StatCard icon={<IconProfs />}     label="Professeurs"       value={stats.profs     ?? 0} />
-                <StatCard icon={<IconImpayes />}   label="Paiements impayés" value={stats.impayes   ?? 0} danger />
-            </div>
+{isSecondaire ? (
+    <div className="grid grid-cols-2 gap-4 mb-6">
+        <StatCard icon={<IconEtudiants />} label="Attestations"        value={stats.attestations ?? 0} />
+        <StatCard icon={<IconGroupes />}   label="Traductions en attente" value={stats.traductions ?? 0} />
+    </div>
+) : (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard icon={<IconEtudiants />} label="Étudiants actifs"   value={stats.etudiants ?? 0} />
+        <StatCard icon={<IconGroupes />}   label="Groupes en cours"   value={stats.groupes   ?? 0} />
+        <StatCard icon={<IconProfs />}     label="Professeurs"        value={stats.profs     ?? 0} />
+        <StatCard icon={<IconImpayes />}   label="Paiements impayés"  value={stats.impayes   ?? 0} danger />
+    </div>
+)}
+{!isSecondaire && (
+    <Button variant="gold" onClick={() => setModal(true)}>
+        <IconPlus /> Nouvelle inscription
+    </Button>
+)}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <SectionCard title="Alertes récentes" color="danger"
