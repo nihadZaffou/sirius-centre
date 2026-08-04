@@ -130,31 +130,42 @@ class InscriptionController extends Controller
                 $etudiant = Etudiant::findOrFail($request->idEtudiant);
             }
 
-            // Vérifier inscription existante
-            $dejaInscrit = DB::table('appartient')
-                ->where('idEtudiant', $etudiant->idEtudiant)
-                ->where('idGroupe', $groupe->idGroupe)
-                ->exists();
-
-            if (!$dejaInscrit) {
-                // Nouvelle inscription
-                DB::table('appartient')->insert([
-                    'idEtudiant'      => $etudiant->idEtudiant,
-                    'idGroupe'        => $groupe->idGroupe,
-                    'dateInscription' => now()->toDateString(),
-                    'statut'          => 'actif',
-                ]);
-            } else {
-                // Réactiver
-                DB::table('appartient')
+            // Vérifier si déjà actif dans ce groupe
+                $dejaActif = DB::table('appartient')
                     ->where('idEtudiant', $etudiant->idEtudiant)
                     ->where('idGroupe', $groupe->idGroupe)
-                    ->update([
-                        'statut'          => 'actif',
+                    ->where('statut', 'actif')
+                    ->exists();
+
+                if ($dejaActif) {
+                    return back()->with('error', 'Cet étudiant est déjà inscrit et actif dans ce groupe.');
+                }
+
+                // Vérifier si inscription existe (terminée ou abandonnée)
+                $dejaInscrit = DB::table('appartient')
+                    ->where('idEtudiant', $etudiant->idEtudiant)
+                    ->where('idGroupe', $groupe->idGroupe)
+                    ->exists();
+
+                if (!$dejaInscrit) {
+                    // Nouvelle inscription
+                    DB::table('appartient')->insert([
+                        'idEtudiant'      => $etudiant->idEtudiant,
+                        'idGroupe'        => $groupe->idGroupe,
                         'dateInscription' => now()->toDateString(),
-                        'dateFin'         => null,
+                        'statut'          => 'actif',
                     ]);
-            }
+                } else {
+                    // Réactiver étudiant (était terminé ou abandonné)
+                    DB::table('appartient')
+                        ->where('idEtudiant', $etudiant->idEtudiant)
+                        ->where('idGroupe', $groupe->idGroupe)
+                        ->update([
+                            'statut'          => 'actif',
+                            'dateInscription' => now()->toDateString(),
+                            'dateFin'         => null,
+                        ]);
+                }
 
             // Créer paiement si n'existe pas
             $paiementExiste = Paiement::where('idEtudiant', $etudiant->idEtudiant)
@@ -183,7 +194,7 @@ class InscriptionController extends Controller
             }
         });
 
-        return back()->with('success', 'Étudiant ajouté au groupe avec succès.');
+        return back();
     }
 
     // Inscription complète depuis dashboard
@@ -193,6 +204,7 @@ class InscriptionController extends Controller
             'nouveau'                     => 'boolean',
             'nom'                         => 'required_if:nouveau,true|string|max:100',
             'prenom'                      => 'required_if:nouveau,true|string|max:100',
+            'dateNaissance' => 'nullable|date',
             'email'                       => 'required_if:nouveau,true|email|unique:utilisateurs,email',
             'telephone'                   => 'nullable|string|max:20',
             'cin'                         => 'nullable|string|max:20|unique:etudiants,cin',
@@ -222,15 +234,16 @@ class InscriptionController extends Controller
                     'role'       => 'etudiant',
                     'actif'      => 1,
                 ]);
-                $etudiant = Etudiant::create([
-                    'idUser'    => $user->idUser,
-                    'cin'       => $request->cin,
-                    'adresse'   => $request->adresse,
-                    'ville'     => $request->ville,
-                    'nomParent' => $request->nomParent,
-                    'telParent' => $request->telParent,
-                    'actif'     => 1,
-                ]);
+            $etudiant = Etudiant::create([
+                'idUser'        => $user->idUser,
+                'dateNaissance' => $request->dateNaissance,
+                'cin'           => $request->cin,
+                'adresse'       => $request->adresse,
+                'ville'         => $request->ville,
+                'nomParent'     => $request->nomParent,
+                'telParent'     => $request->telParent,
+                'actif'         => 1,
+            ]);
             } else {
                 $etudiant = Etudiant::findOrFail($request->idEtudiant);
             }

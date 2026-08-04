@@ -16,7 +16,7 @@ const IconLogs         = () => <svg width="18" height="18" viewBox="0 0 24 24" f
 const IconLogout       = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
 const IconMenu         = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
 const IconX            = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-
+const IconArchive = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
 const menuDirecteur = {
     principal: [
         { label: 'Dashboard',     href: '/directeur/dashboard',    icon: <IconDashboard />,    gold: true },
@@ -30,6 +30,7 @@ const menuDirecteur = {
         { label: 'Alertes',      href: '/directeur/alertes',     icon: <IconAlertes />,     danger: true, badge: 3 },
         { label: 'Annonces',     href: '/directeur/annonces',    icon: <IconAnnonces />,    white: true },
         { label: 'Traductions',  href: '/directeur/traductions', icon: <IconTraductions />, white: true },
+        { label: 'Archives',     href: '/directeur/archives',    icon: <IconArchive />,     white: true },
         { label: 'Logs',         href: '/directeur/logs',        icon: <IconLogs />,        white: true },
     ],
 }

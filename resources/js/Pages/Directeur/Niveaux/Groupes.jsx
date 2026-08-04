@@ -200,17 +200,25 @@ function GroupeCard({ groupe, onDelete }) {
                 </div>
             )}
 
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <button
-    onClick={() => router.get(`/directeur/groupes/${groupe.id}/etudiants`)}
-    className="text-xs text-sirius-gold font-medium hover:opacity-75 transition-opacity"
->
-    Voir les étudiants →
-</button>
-                <Button variant="ghost" size="sm" onClick={() => onDelete(groupe)} className="text-sirius-danger hover:text-sirius-danger">
-                    <IconTrash /> Désactiver
-                </Button>
-            </div>
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => router.get(`/directeur/groupes/${groupe.id}/etudiants`)}
+                            className="text-xs text-sirius-gold font-medium hover:opacity-75 transition-opacity"
+                        >
+                            Voir les étudiants →
+                        </button>
+                        <button
+                            onClick={() => router.visit(`/directeur/groupes/${groupe.id}/presences-historique`)}
+                            className="text-xs text-blue-500 font-medium hover:opacity-75 transition-opacity"
+                        >
+                            Historique →
+                        </button>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => onDelete(groupe)} className="text-sirius-danger hover:text-sirius-danger">
+                        <IconTrash /> Désactiver
+                    </Button>
+                </div>
         </div>
     )
 }

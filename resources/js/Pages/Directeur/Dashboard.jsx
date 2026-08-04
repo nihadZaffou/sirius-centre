@@ -66,10 +66,11 @@ function ModalInscription({ onClose }) {
     const etudiantRef = useRef(null)
     const [etudiantDisplay, setEtudiantDisplay] = useState(null)
 
-    const [formEtudiant, setFormEtudiant] = useState({
-        nom: '', prenom: '', email: '', telephone: '',
-        cin: '', ville: '', adresse: '', nomParent: '', telParent: '',
-    })
+const [formEtudiant, setFormEtudiant] = useState({
+    nom: '', prenom: '', email: '', telephone: '',
+    cin: '', ville: '', adresse: '', nomParent: '', telParent: '',
+    dateNaissance: '',
+})
 
     const [langues, setLangues]               = useState([])
     const [niveauxDispos, setNiveauxDispos]   = useState([])
@@ -212,7 +213,7 @@ function ModalInscription({ onClose }) {
     return (
         <Modal
             title={`Nouvelle inscription — Étape ${etape}/3`}
-            subtitle={etape === 1 ? 'Étudiant' : etape === 2 ? 'Groupes' : 'Paiements'}
+           subtitle={etape === 1 ? 'Étudiant' : etape === 2 ? 'Groupes' : 'Paiements'}
             onClose={onClose}
             maxWidth="max-w-xl"
         >
@@ -273,6 +274,13 @@ function ModalInscription({ onClose }) {
                                 <div className="grid grid-cols-2 gap-3">
                                     <Input label="Nom" value={formEtudiant.nom} onChange={setForm('nom')} error={errors.nom} placeholder="BENALI" required />
                                     <Input label="Prénom" value={formEtudiant.prenom} onChange={setForm('prenom')} error={errors.prenom} placeholder="Mohammed" required />
+                                </div>
+                                <div>
+                                <Input
+                                        label="Date de naissance" type="date"
+                                        value={formEtudiant.dateNaissance}
+                                        onChange={e => setFormEtudiant(f => ({ ...f, dateNaissance: e.target.value }))}
+                                    />
                                 </div>
                                 <Input label="Email" type="email" value={formEtudiant.email} onChange={setForm('email')} error={errors.email} placeholder="email@exemple.com" required />
                                 <div className="grid grid-cols-2 gap-3">
@@ -387,10 +395,21 @@ export default function Dashboard({ stats = {}, alertes = [], seances = [], isSe
     const { props }                    = usePage()
     const flash                        = props.flash ?? {}
     const [modalInscription, setModal] = useState(false)
+    const [modalArchive, setModalArchive]   = useState(false)
+const [anneeArchive, setAnneeArchive]   = useState(
+    new Date().getFullYear() - 1 + '/' + new Date().getFullYear()
+)
+const [loadingArchive, setLoadingArchive] = useState(false)
     const dateAujourdhui = new Date().toLocaleDateString('fr-FR', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     })
-
+const handleArchiver = () => {
+    setLoadingArchive(true)
+    router.post('/directeur/archives/archiver', { annee: anneeArchive }, {
+        onSuccess: () => { setLoadingArchive(false); setModalArchive(false) },
+        onError:   () => setLoadingArchive(false),
+    })
+}
     return (
         <SiriusLayout title="Dashboard">
             <Flash success={flash.success} error={flash.error} />
@@ -400,9 +419,14 @@ export default function Dashboard({ stats = {}, alertes = [], seances = [], isSe
                     <h1 className="page-title">Dashboard</h1>
                     <p className="page-subtitle capitalize">{dateAujourdhui}</p>
                 </div>
+                <div className="flex items-center gap-3">
+                <Button variant="outline" onClick={() => setModalArchive(true)}>
+                    📦 Archiver l'année
+                </Button>
                 <Button variant="gold" onClick={() => setModal(true)}>
                     <IconPlus /> Nouvelle inscription
                 </Button>
+            </div>
             </div>
 {isSecondaire ? (
     <div className="grid grid-cols-2 gap-4 mb-6">
@@ -462,7 +486,15 @@ export default function Dashboard({ stats = {}, alertes = [], seances = [], isSe
                                     <div className="flex-1 min-w-0">
                                         <div className="text-sm font-medium text-gray-900 truncate">{s.groupe}</div>
                                         <div className="text-xs text-gray-400 truncate">{s.langue} · {s.niveau} · {s.salle ?? '—'}</div>
+                                        {s.prof && <div className="text-xs text-gray-400 truncate">👨‍🏫 {s.prof}</div>}
                                     </div>
+                                    {s.alertes > 0 && (
+                                        <div className="flex-shrink-0">
+                                            <span className="flex items-center gap-1 px-2 py-1 rounded-lg bg-sirius-danger-light border border-sirius-danger-border text-sirius-danger text-[11px] font-bold">
+                                                ⚠️ {s.alertes}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -471,6 +503,31 @@ export default function Dashboard({ stats = {}, alertes = [], seances = [], isSe
             </div>
 
             {modalInscription && <ModalInscription onClose={() => setModal(false)} />}
+            {modalArchive && (
+    <Modal title="Archiver une année scolaire" onClose={() => setModalArchive(false)}>
+        <ModalBody>
+            <div className="space-y-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+                    <p className="text-sm text-yellow-700">
+                        ⚠️ Cette action va terminer tous les groupes en cours et archiver les étudiants sans groupe actif. Les données restent accessibles dans les Archives.
+                    </p>
+                </div>
+                <Input
+                    label="Année scolaire à archiver"
+                    value={anneeArchive}
+                    onChange={e => setAnneeArchive(e.target.value)}
+                    placeholder="2025/2026"
+                />
+            </div>
+        </ModalBody>
+        <ModalFooter>
+            <Button variant="outline" onClick={() => setModalArchive(false)} className="flex-1">Annuler</Button>
+            <Button variant="danger" onClick={handleArchiver} loading={loadingArchive} className="flex-1">
+                Archiver l'année
+            </Button>
+        </ModalFooter>
+    </Modal>
+)}    
         </SiriusLayout>
     )
 }

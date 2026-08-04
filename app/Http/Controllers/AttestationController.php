@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attestation;
 use App\Models\Etudiant;
+use App\Models\Groupe;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -144,7 +145,7 @@ public function preview(Request $request)
         'annee'      => 'required|string',
     ]);
 
-    $config   = config("attestations.{$request->langue}.niveaux.{$request->niveau}");
+    $config = config("attestations.{$request->langue}.niveaux.{$request->niveau}");
     if (!$config) {
         return back()->withErrors(['niveau' => 'Niveau non trouvé.']);
     }
@@ -159,6 +160,7 @@ public function preview(Request $request)
             'niveau'     => $request->niveau,
         ],
         [
+            'idNiveau' => \App\Models\Niveau::where('nomNiveau', str_replace('/', '.', $config['label']))->first()?->idNiveau ?? \App\Models\Niveau::first()->idNiveau,
             'statut'      => 'validee',
             'dateDemande' => now(),
         ]
@@ -169,24 +171,42 @@ public function preview(Request $request)
         "Attestation {$config['label']} pour {$etudiant->user->prenom} {$etudiant->user->nom}"
     );
 
-    // Construire URL vers le projet du dev
-    $params = http_build_query([
-        'from_laravel'     => '1',
-        'fullName'         => strtoupper($etudiant->user->prenom . ' ' . $etudiant->user->nom),
-        'birthDate'        => $etudiant->dateNaissance
-            ? Carbon::parse($etudiant->dateNaissance)->format('d.m.Y')
-            : '',
-        'birthPlace'       => strtoupper($etudiant->ville ?? ''),
-        'academicPeriod'   => $request->annee,
-        'level'            => $config['label'],
-        'courseTitle'      => 'Deutschkurs für Studenten',
-        'registrationText' => 'in unserer Sprachschule angemeldet ist und in der Zeit vom',
-        'completionText'   => 'besucht hat.',
-        'issueDate'        => Carbon::now()->locale('fr')->isoFormat('D MMMM YYYY'),
-        'directorTitle'    => $config['signataire'],
-    ]);
+    $certificateData = [
+        'student' => [
+            'salutation' => 'Frau/Herr',
+            'fullName'   => strtoupper($etudiant->user->prenom . ' ' . $etudiant->user->nom),
+            'birthDate'  => $etudiant->dateNaissance
+                ? Carbon::parse($etudiant->dateNaissance)->format('d.m.Y')
+                : '',
+            'birthPlace' => strtoupper($etudiant->ville ?? ''),
+        ],
+            'course' => [
+            'academicPeriod'   => $request->annee,
+            'level'            => $config['label'],
+            'courseTitle'      => 'Deutschkurs für Studenten ',
+            'texteComplet'     => str_replace('{{ANNEE}}', $request->annee, $config['texte']),
+            'bemerkungen'      => $config['bemerkungen'],
+            'registrationText' => 'in unserer Sprachschule angemeldet ist und in der Zeit vom',
+            'completionText'   => 'besucht hat.',
+            'type'             => $config['type'],
+        ],
+                'center' => [
+            'centerType' => 'Centre Sirius (PRIVE)',
+            'address'    => 'Bd Mohammed 6 RUE 20 Baalabak Oujda',
+            'ice'        => '(002646655000021)',
+            'gsm'        => '0629965237',
+            'email'      => 'siriuscentre1@gmail.com',
+        ],
+        'meta' => [
+            'certificateTitle' => 'TEILNAHMEBESTÄTIGUNG',
+            'issueDate'        => Carbon::now()->locale('fr')->isoFormat('D MMMM YYYY'),
+            'directorTitle'    => $config['signataire'] . ' :',
+        ],
+    ];
 
-return Inertia::location('/certificate/index.html?' . $params);
+    return Inertia::render('Directeur/Attestations/Preview', [
+        'certificateData' => $certificateData,
+    ]);
 }
 
 // Helpers selon langue
@@ -218,4 +238,5 @@ private function getCompletionText(string $langue, array $config): string
         default    => 'successfully completed.',
     };
 }
+
 }

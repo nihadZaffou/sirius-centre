@@ -108,7 +108,7 @@ if ($request->filled('idGroupe')) {
     'paiements.avances',
     'paiements.niveau',
     'paiements.groupe',
-    'presences.groupe',  // ← ajoutez
+    'presences' => fn($q) => $q->where('estPresent', 0)->with('groupe'),
     'attestations',
     'traductions',
     'alertes' => fn($q) => $q->where('statut', 'active'),

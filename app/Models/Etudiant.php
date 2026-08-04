@@ -11,8 +11,7 @@ class Etudiant extends Model
     public    $timestamps = false;
 
 protected $fillable = [
-    'idUser', 'cin', 'adresse', 'ville',
-    'nomParent', 'telParent', 'actif',
+    'idUser', 'cin', 'adresse', 'ville', 'nomParent', 'telParent', 'actif', 'dateNaissance',
 ];
 
     // Relations

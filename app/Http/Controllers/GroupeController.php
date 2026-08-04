@@ -15,51 +15,52 @@ use App\Models\Etudiant;
 class GroupeController extends Controller
 {
     // Page groupes par niveau
-    public function parNiveau($idNiveau)
-    {
-        $niveau = Niveau::with('langue')->findOrFail($idNiveau);
+public function parNiveau($idNiveau)
+{
+    $niveau = Niveau::with('langue')->findOrFail($idNiveau);
 
-        $groupes = Groupe::with(['prof.user', 'emplois'])
-            ->withCount(['etudiantsActifs'])
-            ->where('idNiveau', $idNiveau)
-            ->orderBy('nomGroupe')
-            ->get()
-            ->map(fn($g) => [
-                'id'              => $g->idGroupe,
-                'nom'             => $g->nomGroupe,
-                'capacite'        => $g->capacite,
-                'statut'          => $g->statut,
-                'actif'           => $g->actif,
-                'dateDebut'       => $g->dateDebut,
-                'dateFin'         => $g->dateFin,
-                'prof'            => $g->prof?->user?->prenom . ' ' . $g->prof?->user?->nom,
-                'etudiants_count' => $g->etudiants_actifs_count,
-                'emplois'         => $g->emplois->map(fn($e) => [
-                    'jour'  => $e->jour,
-                    'debut' => $e->heureDebut,
-                    'fin'   => $e->heureFin,
-                    'salle' => $e->salle,
-                ]),
-            ]);
-
-        $profs = Prof::with('user')
-            ->whereHas('user', fn($q) => $q->where('actif', 1))
-            ->get()
-            ->map(fn($p) => [
-                'id'  => $p->idProf,
-                'nom' => $p->user->prenom . ' ' . $p->user->nom,
-            ]);
-
-        return Inertia::render('Directeur/Niveaux/Groupes', [
-            'niveau'  => [
-                'id'     => $niveau->idNiveau,
-                'nom'    => $niveau->nomNiveau,
-                'langue' => $niveau->langue->nomLangue,
-            ],
-            'groupes' => $groupes,
-            'profs'   => $profs,
+    $groupes = Groupe::with(['prof.user', 'emplois'])
+        ->withCount(['etudiantsActifs'])
+        ->where('idNiveau', $idNiveau)
+        ->where('statut', '!=', 'termine')
+        ->orderBy('nomGroupe')
+        ->get()
+        ->map(fn($g) => [
+            'id'              => $g->idGroupe,
+            'nom'             => $g->nomGroupe,
+            'capacite'        => $g->capacite,
+            'statut'          => $g->statut,
+            'actif'           => $g->actif,
+            'dateDebut'       => $g->dateDebut,
+            'dateFin'         => $g->dateFin,
+            'prof'            => $g->prof?->user?->prenom . ' ' . $g->prof?->user?->nom,
+            'etudiants_count' => $g->etudiants_actifs_count,
+            'emplois'         => $g->emplois->map(fn($e) => [
+                'jour'  => $e->jour,
+                'debut' => $e->heureDebut,
+                'fin'   => $e->heureFin,
+                'salle' => $e->salle,
+            ]),
         ]);
-    }
+
+    $profs = Prof::with('user')
+        ->whereHas('user', fn($q) => $q->where('actif', 1))
+        ->get()
+        ->map(fn($p) => [
+            'id'  => $p->idProf,
+            'nom' => $p->user->prenom . ' ' . $p->user->nom,
+        ]);
+
+    return Inertia::render('Directeur/Niveaux/Groupes', [
+        'niveau'  => [
+            'id'     => $niveau->idNiveau,
+            'nom'    => $niveau->nomNiveau,
+            'langue' => $niveau->langue->nomLangue,
+        ],
+        'groupes' => $groupes,
+        'profs'   => $profs,
+    ]);
+}
 // Liste étudiants d'un groupe
 public function etudiants($idGroupe)
 {
@@ -241,5 +242,54 @@ $niveauSuivant = \App\Models\Niveau::where('idLangue', $groupe->niveau->idLangue
         Groupe::findOrFail($id)->update(['actif' => 0, 'statut' => 'termine']);
         return back()->with('success', 'Groupe désactivé.');
     }
+    public function historiquePresences($id)
+{
+    $groupe = Groupe::with([
+        'niveau.langue',
+        'prof.user',
+        'etudiantsActifs.user',
+    ])->findOrFail($id);
+
+    // Toutes les dates de séances enregistrées
+    $dates = \App\Models\Presence::where('idGroupe', $id)
+        ->select('dateSeance')
+        ->distinct()
+        ->orderBy('dateSeance')
+        ->pluck('dateSeance');
+
+    // Toutes les présences du groupe
+    $presences = \App\Models\Presence::where('idGroupe', $id)
+        ->get()
+        ->groupBy('idEtudiant');
+
+    $etudiants = $groupe->etudiantsActifs->map(fn($e) => [
+        'id'     => $e->idEtudiant,
+        'nom'    => $e->user->nom,
+        'prenom' => $e->user->prenom,
+        'presences' => $dates->mapWithKeys(fn($date) => [
+            $date => $presences->get($e->idEtudiant)
+                ?->firstWhere('dateSeance', $date)
+                ? [
+                    'present'     => $presences->get($e->idEtudiant)->firstWhere('dateSeance', $date)->estPresent,
+                    'justifie'    => $presences->get($e->idEtudiant)->firstWhere('dateSeance', $date)->estJustifie,
+                    'motif'       => $presences->get($e->idEtudiant)->firstWhere('dateSeance', $date)->motifJustif,
+                    'idPresence'  => $presences->get($e->idEtudiant)->firstWhere('dateSeance', $date)->idPresence,
+                ]
+                : null,
+        ]),
+    ]);
+
+    return Inertia::render('Directeur/Groupes/HistoriquePresences', [
+        'groupe' => [
+            'id'      => $groupe->idGroupe,
+            'nom'     => $groupe->nomGroupe,
+            'langue'  => $groupe->niveau?->langue?->nomLangue,
+            'niveau'  => $groupe->niveau?->nomNiveau,
+            'prof'    => $groupe->prof?->user?->prenom . ' ' . $groupe->prof?->user?->nom,
+        ],
+        'dates'     => $dates,
+        'etudiants' => $etudiants,
+    ]);
+}
     
 }

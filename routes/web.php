@@ -31,17 +31,12 @@ Route::get('/deconnexion', function () {
     request()->session()->regenerateToken();
     return redirect()->route('login');
 })->middleware('auth');
-
-// ── DEBUG (temporaire) ──
-Route::get('/debug-prof', function () {
-    $user = auth()->user();
-    return response()->json([
-        'idUser' => $user->idUser,
-        'email'  => $user->email,
-        'prof'   => $user->prof,
-    ]);
-})->middleware('auth');
-
+// ── PROFIL (tous les utilisateurs connectés) ──
+Route::middleware(['auth', 'actif'])->group(function () {
+    Route::get('/profil',                [App\Http\Controllers\ProfilController::class, 'index'])->name('profil.index');
+    Route::put('/profil',                [App\Http\Controllers\ProfilController::class, 'update'])->name('profil.update');
+    Route::put('/profil/password',       [App\Http\Controllers\ProfilController::class, 'updatePassword'])->name('profil.password');
+});
 Route::middleware(['auth', 'actif', 'role:directeur'])
     ->prefix('directeur')
     ->name('directeur.')
@@ -100,7 +95,11 @@ Route::get('/certificate/{any?}', function () {
         Route::patch('/alertes/{id}/resoudre',[AlerteController::class, 'resoudre'])->name('alertes.resoudre');
         Route::get('/logs',                   [LogController::class, 'index'])->name('logs.index');
         Route::patch('/presences/{id}/justifier', [PresenceController::class, 'justifier'])->name('presences.justifier');
-        ;
+       // Archives
+        Route::get('/archives',  [App\Http\Controllers\ArchiveController::class, 'index'])->name('archives.index');
+        Route::post('/archives/archiver', [App\Http\Controllers\ArchiveController::class, 'archiver'])->name('archives.archiver');
+        Route::patch('/archives/reactiver/{id}', [App\Http\Controllers\ArchiveController::class, 'reactiver'])->name('archives.reactiver');
+        Route::get('/groupes/{id}/presences-historique', [App\Http\Controllers\GroupeController::class, 'historiquePresences'])->name('groupes.presences-historique');
     });
 
 });

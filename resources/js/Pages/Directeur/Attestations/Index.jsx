@@ -46,7 +46,6 @@ function ModalGenerer({ langues, onClose }) {
             setResultats(Array.isArray(data) ? data : [])
         } catch { setResultats([]) }
     }
-
 const submit = (e) => {
     e.preventDefault()
     const errs = {}
@@ -56,17 +55,15 @@ const submit = (e) => {
     if (!annee)    errs.annee    = 'Saisissez l\'année scolaire'
     if (Object.keys(errs).length) { setErrors(errs); return }
 
-    // Utiliser fetch pour appeler Laravel et récupérer l'URL de redirect
-    const params = new URLSearchParams({
+    router.get('/directeur/attestations/preview', {
         idEtudiant: etudiant.id,
         langue,
         niveau,
         annee,
     })
-
-    window.location.href = `/directeur/attestations/preview?${params.toString()}`
     onClose()
 }
+
     return (
         <Modal title="Générer une attestation" onClose={onClose} maxWidth="max-w-lg">
             <form onSubmit={submit}>

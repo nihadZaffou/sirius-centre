@@ -441,7 +441,7 @@ export default function Etudiants({ groupe, etudiants = [], groupesMemeNiveau = 
 
     return (
         <SiriusLayout title={`${groupe.langue} · ${groupe.niveau} · ${groupe.nom}`}>
-            <Flash success={flash.success} error={flash.error} />
+           <Flash success={flash.success} error={flash.error} />
 
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">

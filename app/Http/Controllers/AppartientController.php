@@ -119,22 +119,42 @@ class AppartientController extends Controller
 
     // Changer statut inscription (abandon ou terminer)
     public function updateStatut(Request $request, $idEtudiant)
-    {
-        $request->validate([
-            'idGroupe' => 'required|exists:groupes,idGroupe',
-            'statut'   => 'required|in:abandonne,termine',
-        ]);
-
-        DB::table('appartient')
-            ->where('idEtudiant', $idEtudiant)
-            ->where('idGroupe', $request->idGroupe)
-            ->where('statut', 'actif')
-            ->update([
-                'statut'  => $request->statut,
-                'dateFin' => now()->toDateString(),
+        {
+            $request->validate([
+                'idGroupe' => 'required|exists:groupes,idGroupe',
+                'statut'   => 'required|in:abandonne,termine',
             ]);
 
-        $msg = $request->statut === 'abandonne' ? 'Inscription marquée comme abandonnée.' : 'Inscription terminée.';
-        return back()->with('success', $msg);
-    }
+            DB::table('appartient')
+                ->where('idEtudiant', $idEtudiant)
+                ->where('idGroupe', $request->idGroupe)
+                ->where('statut', 'actif')
+                ->update([
+                    'statut'  => $request->statut,
+                    'dateFin' => now()->toDateString(),
+                ]);
+
+            // Vérifier si l'étudiant a encore un groupe actif
+            $aGroupeActif = DB::table('appartient')
+                ->where('idEtudiant', $idEtudiant)
+                ->where('statut', 'actif')
+                ->exists();
+
+            // Si plus de groupe actif → archiver l'étudiant
+            if (!$aGroupeActif) {
+                \App\Models\Etudiant::where('idEtudiant', $idEtudiant)
+                    ->update(['actif' => 0]);
+
+                \App\Models\Log::enregistrer(
+                    'archivage_etudiant',
+                    "Étudiant #{$idEtudiant} archivé automatiquement — plus de groupe actif"
+                );
+            }
+
+            $msg = $request->statut === 'abandonne'
+                ? 'Inscription marquée comme abandonnée.'
+                : 'Inscription terminée.';
+
+            return back()->with('success', $msg);
+        }
 }

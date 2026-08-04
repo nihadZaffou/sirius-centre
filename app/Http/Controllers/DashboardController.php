@@ -72,6 +72,9 @@ class DashboardController extends Controller
                 'debut'  => $e->heureDebut,
                 'fin'    => $e->heureFin,
                 'salle'  => $e->salle,
+                 'alertes' => Alerte::where('idGroupe', $e->groupe?->idGroupe)
+            ->where('statut', 'active')
+            ->count(),
             ]);
 
         return Inertia::render('Directeur/Dashboard', [

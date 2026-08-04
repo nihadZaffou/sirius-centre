@@ -10,9 +10,9 @@ class Attestation extends Model
     protected $primaryKey = 'idAttestation';
     public $timestamps    = false;
 
-    protected $fillable = [
-        'idEtudiant', 'langue', 'niveau', 'statut', 'dateDemande',
-    ];
+   protected $fillable = [
+    'idEtudiant', 'idNiveau', 'langue', 'niveau', 'statut', 'dateDemande',
+];
 
     public function etudiant()
     {
